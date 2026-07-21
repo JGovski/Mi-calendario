@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Calendario y Días Ocupados</title>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --busy-bg: #fee2e2;
+            --busy-text: #991b1b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 1rem;
+        }
+
+        .container {
+            background: var(--card-bg);
+            width: 100%;
+            max-width: 480px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            padding: 1.5rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 1.2rem;
+        }
+
+        .week-badge {
+            display: inline-block;
+            background: #e0e7ff;
+            color: var(--primary);
+            font-weight: 600;
+            font-size: 0.85rem;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            margin-bottom: 0.5rem;
+        }
+
+        h1 {
+            font-size: 1.3rem;
+            color: var(--text-main);
+            text-transform: capitalize;
+        }
+
+        .nav-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .nav-controls button {
+            background: none;
+            border: 1px solid var(--border-color);
+            padding: 0.4rem 0.8rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--text-muted);
+            transition: all 0.2s;
+        }
+
+        .nav-controls button:hover {
+            background: var(--bg-color);
+            color: var(--text-main);
+        }
+
+        .weekdays {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            text-align: center;
+            font-weight: 600;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+
+        .days-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 6px;
+        }
+
+        .day {
+            aspect-ratio: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            background: var(--bg-color);
+            border: 1px solid transparent;
+            transition: all 0.15s ease;
+            position: relative;
+        }
+
+        .day:hover {
+            border-color: var(--primary);
+        }
+
+        .day.empty {
+            background: transparent;
+            cursor: default;
+            border: none;
+        }
+
+        .day.busy {
+            background-color: var(--busy-bg);
+            color: var(--busy-text);
+            border-fca: #f87171;
+        }
+
+        .day.busy::after {
+            content: '';
+            position: absolute;
+            bottom: 4px;
+            width: 4px;
+            height: 4px;
+            background-color: var(--busy-text);
+            border-radius: 50%;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            justify-content: center;
+            align-items: center;
+            padding: 1rem;
+            z-index: 10;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            width: 100%;
+            max-width: 360px;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        .modal-content h3 {
+            font-size: 1.1rem;
+            margin-bottom: 0.8rem;
+        }
+
+        .modal-content textarea {
+            width: 100%;
+            height: 90px;
+            padding: 0.6rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            resize: none;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            outline: none;
+        }
+
+        .modal-content textarea:focus {
+            border-color: var(--primary);
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.5rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-secondary {
+            background: var(--bg-color);
+            color: var(--text-muted);
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header">
+            <div id="weekBadge" class="week-badge">Semana -- del año</div>
+            <h1 id="monthYearDisplay"></h1>
+        </div>
+
+        <div class="nav-controls">
+            <button id="prevBtn">&larr; Anterior</button>
+            <button id="todayBtn">Hoy</button>
+            <button id="nextBtn">Siguiente &rarr;</button>
+        </div>
+
+        <div class="weekdays">
+            <div>Lun</div><div>Mar</div><div>Mié</div><div>Jue</div><div>Vie</div><div>Sáb</div><div>Dom</div>
+        </div>
+
+        <div id="daysGrid" class="days-grid"></div>
+    </div>
+
+    <!-- Modal para notas -->
+    <div id="noteModal" class="modal">
+        <div class="modal-content">
+            <h3 id="modalDateTitle">Día Ocupado</h3>
+            <textarea id="noteInput" placeholder="Escribe tu actividad u ocupación..."></textarea>
+            <div class="modal-actions">
+                <button id="clearNoteBtn" class="btn btn-secondary" style="margin-right: auto; color: #dc2626;">Borrar</button>
+                <button id="closeModalBtn" class="btn btn-secondary">Cancelar</button>
+                <button id="saveNoteBtn" class="btn btn-primary">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentDate = new Date();
+        let selectedDateStr = '';
+        let events = JSON.parse(localStorage.getItem('calendar_events') || '{}');
+
+        const monthNames = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+
+        const monthYearDisplay = document.getElementById('monthYearDisplay');
+        const daysGrid = document.getElementById('daysGrid');
+        const weekBadge = document.getElementById('weekBadge');
+        const noteModal = document.getElementById('noteModal');
+        const modalDateTitle = document.getElementById('modalDateTitle');
+        const noteInput = document.getElementById('noteInput');
+
+        // Calcular número de semana ISO
+        function getIsoWeek(date) {
+            const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+            const dayNum = d.getUTCDay() || 7;
+            d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+            const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+            return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+        }
+
+        function renderCalendar() {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+
+            monthYearDisplay.textContent = `${monthNames[month]} ${year}`;
+            weekBadge.textContent = `Semana ${getIsoWeek(new Date())} del año`;
+
+            daysGrid.innerHTML = '';
+
+            // Primer día del mes
+            const firstDayIndex = (new Date(year, month, 1).getDay() + 6) % 7; // Ajuste para iniciar en Lunes
+            const totalDays = new Date(year, month + 1, 0).getDate();
+
+            // Espacios vacíos previos
+            for (let i = 0; i < firstDayIndex; i++) {
+                const emptyDiv = document.createElement('div');
+                emptyDiv.classList.add('day', 'empty');
+                daysGrid.appendChild(emptyDiv);
+            }
+
+            // Días del mes
+            for (let day = 1; day <= totalDays; day++) {
+                const dayDiv = document.createElement('div');
+                dayDiv.classList.add('day');
+                dayDiv.textContent = day;
+
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                
+                if (events[dateStr]) {
+                    dayDiv.classList.add('busy');
+                }
+
+                dayDiv.addEventListener('click', () => openModal(dateStr, day, monthNames[month], year));
+                daysGrid.appendChild(dayDiv);
+            }
+        }
+
+        function openModal(dateStr, day, monthName, year) {
+            selectedDateStr = dateStr;
+            modalDateTitle.textContent = `${day} de ${monthName}, ${year}`;
+            noteInput.value = events[dateStr] || '';
+            noteModal.classList.add('active');
+        }
+
+        document.getElementById('prevBtn').addEventListener('click', () => {
+            currentDate.setMonth(currentDate.getMonth() - 1);
+            renderCalendar();
+        });
+
+        document.getElementById('nextBtn').addEventListener('click', () => {
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            renderCalendar();
+        });
+
+        document.getElementById('todayBtn').addEventListener('click', () => {
+            currentDate = new Date();
+            renderCalendar();
+        });
+
+        document.getElementById('closeModalBtn').addEventListener('click', () => {
+            noteModal.classList.remove('active');
+        });
+
+        document.getElementById('saveNoteBtn').addEventListener('click', () => {
+            const text = noteInput.value.trim();
+            if (text) {
+                events[selectedDateStr] = text;
+            } else {
+                delete events[selectedDateStr];
+            }
+            localStorage.setItem('calendar_events', JSON.stringify(events));
+            noteModal.classList.remove('active');
+            renderCalendar();
+        });
+
+        document.getElementById('clearNoteBtn').addEventListener('click', () => {
+            delete events[selectedDateStr];
+            localStorage.setItem('calendar_events', JSON.stringify(events));
+            noteModal.classList.remove('active');
+            renderCalendar();
+        });
+
+        // Inicializar
+        renderCalendar();
+    </script>
+</body>
+</html>
